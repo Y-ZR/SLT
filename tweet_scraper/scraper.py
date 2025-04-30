@@ -1,0 +1,65 @@
+import json
+import urllib.parse
+import os
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import requests
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Get credentials from environment variables
+TOKEN = os.getenv("TWITTER_TOKEN")
+API_BASE = os.getenv("TWITTER_API_BASE")
+
+def get_tweets(query="binance kyb", start_date=None, end_date=None, output_file="tweets.json"):
+    """Query tweets and save them to a JSON file.
+    
+    Args:
+        query: Search query string
+        start_date: Start date (YYYY-MM-DD) or None for 6 days ago
+        end_date: End date (YYYY-MM-DD) or None for today
+        output_file: Path to save the JSON output
+    """
+    today = datetime.now(timezone.utc).date()
+    future_year = 2025
+    today = today.replace(year=future_year)
+    
+    if not end_date:
+        end_date = today.strftime("%Y-%m-%d")
+    
+    if not start_date:
+        start_date = (today - timedelta(days=6)).strftime("%Y-%m-%d")
+    
+    start_iso = f"{start_date}T00:00:00Z"
+    end_iso = f"{end_date}T00:00:00Z"
+    
+    encoded_query = urllib.parse.quote(query)
+    url = (
+        f"{API_BASE}?tweet.fields=author_id,text,created_at,lang,public_metrics"
+        f"&bu=futures&query={encoded_query}"
+        f"&start_time={start_iso}&end_time={end_iso}&max_results=100"
+    )
+    
+    headers = {"authorization": TOKEN}
+    response = requests.get(url, headers=headers, timeout=30)
+    
+    # Parse the JSON response
+    response_data = response.json()
+    
+    # Add tweet URLs to each tweet
+    if "data" in response_data:
+        for tweet in response_data["data"]:
+            tweet_id = tweet["id"]
+            tweet["url"] = f"https://twitter.com/i/web/status/{tweet_id}"
+    
+    # Write the modified response to file
+    Path(output_file).write_text(json.dumps(response_data, indent=2), encoding="utf-8")
+    print(f"Tweets saved to {output_file}")
+    
+    return response_data
+
+if __name__ == "__main__":
+    get_tweets() 
