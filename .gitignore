@@ -48,3 +48,6 @@ venv/
 .venv/
 env/
 ENV/
+
+# data files
+tweets.json
