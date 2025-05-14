@@ -120,7 +120,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
       </div>
 
       <div className="flex flex-col sm:flex-row items-start gap-4 w-full">
-        <div className="w-full sm:w-[250px]">
+        <div className="w-32">
           <Label htmlFor="min-impressions">Minimum Impressions</Label>
           <Input
             id="min-impressions"
@@ -131,26 +131,35 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
           />
         </div>
 
-        <div className="w-full sm:w-[200px]">
+        <div className="w-96">
           <Label htmlFor="mention-filter">Filter by Mention</Label>
-          <Select value={mentionFilter} onValueChange={setMentionFilter}>
-            <SelectTrigger id="mention-filter" className="mt-1">
-              <SelectValue placeholder="All mentions" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All mentions</SelectItem>
-              {uniqueMentions.map((mention) => (
-                <SelectItem key={mention} value={mention}>
-                  {mention}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="w-full">
+            <Select value={mentionFilter} onValueChange={setMentionFilter}>
+              <SelectTrigger 
+                id="mention-filter" 
+                className="mt-1 !w-full !min-w-[12rem]"
+                style={{ width: '12rem', minWidth: '12rem' }}
+              >
+                <SelectValue placeholder="All mentions" className="w-full" />
+              </SelectTrigger>
+              <SelectContent 
+                className="!w-[12rem] !min-w-[12rem]"
+                style={{ width: '12rem', minWidth: '12rem' }}
+              >
+                <SelectItem value="all">All mentions</SelectItem>
+                {uniqueMentions.map((mention) => (
+                  <SelectItem key={mention} value={mention}>
+                    {mention}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="flex-1"></div>
 
-        <div className="sm:w-32 flex flex-col items-end">
+        <div className="w-32 flex flex-col items-end">
           <Label htmlFor="tweets-per-page" className="text-right">Tweets per Page</Label>
           <Select
             value={tweetsPerPage}
@@ -188,7 +197,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
           <div className="space-y-4">
             {currentTweets.map((tweet) => (
               <Card key={tweet.id}>
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-1">
                   <div className="flex items-center gap-3">
                     <Avatar>
                       <AvatarImage
@@ -209,11 +218,11 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="pb-2">
+                <CardContent className="pb-1">
                   <p>{tweet.text || "No content"}</p>
                   {Array.isArray(tweet.mentions) &&
                     tweet.mentions.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
+                      <div className="flex flex-wrap gap-1 mt-1">
                         {tweet.mentions.map((mention, index) => (
                           <Badge
                             key={`${mention}-${index}`}
@@ -226,14 +235,24 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
                       </div>
                     )}
                 </CardContent>
-                <CardFooter className="pt-2 text-sm text-muted-foreground flex justify-between">
-                  <span>
-                    {tweet.createdAt
-                      ? formatDistanceToNow(new Date(tweet.createdAt), {
-                          addSuffix: true,
-                        })
-                      : "Unknown date"}
-                  </span>
+                <CardFooter className="pt-1 text-sm text-muted-foreground flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <span>
+                      {tweet.createdAt
+                        ? formatDistanceToNow(new Date(tweet.createdAt), {
+                            addSuffix: true,
+                          })
+                        : "Unknown date"}
+                    </span>
+                    <a
+                      href={`https://twitter.com/${tweet.authorUsername}/status/${tweet.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      View on X
+                    </a>
+                  </div>
                   <span>
                     {tweet.impressions?.toLocaleString() || 0} impressions
                   </span>
