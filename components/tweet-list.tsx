@@ -18,6 +18,22 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
+import { Check, ChevronsUpDown, X } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 interface TweetListProps {
   tweets: Tweet[]
@@ -27,8 +43,17 @@ interface TweetListProps {
 export function TweetList({ tweets, groupKeywords }: TweetListProps) {
   const [minImpressions, setMinImpressions] = useState<number>(0)
   const [mentionFilter, setMentionFilter] = useState<string>("all")
+  const [selectedMentions, setSelectedMentions] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [tweetsPerPage, setTweetsPerPage] = useState("10")
+  const [open, setOpen] = useState(false)
+
+  // Utility to extract @mentions from tweet text
+  const extractMentions = (text: string | undefined) => {
+    if (!text) return [] as string[]
+    const matches = text.match(/@[A-Za-z0-9_]+/g) || []
+    return matches
+  }
 
   const filteredTweets = useMemo(() => {
     return tweets.filter((tweet) => {
@@ -37,14 +62,18 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
         return false
       }
 
-      // Filter by mentions
-      if (mentionFilter !== "all" && !tweet.mentions.includes(mentionFilter)) {
-        return false
+      // Determine mentions for this tweet (from payload or extracted)
+      const tweetMentions = (Array.isArray(tweet.mentions) && tweet.mentions.length > 0)
+        ? tweet.mentions
+        : extractMentions(tweet.text)
+
+      if (selectedMentions.length > 0) {
+        return tweetMentions.some((m) => selectedMentions.includes(m))
       }
 
       return true
     })
-  }, [tweets, minImpressions, mentionFilter])
+  }, [tweets, minImpressions, selectedMentions])
 
   // Pagination calculations
   const totalTweets = filteredTweets.length
@@ -61,14 +90,27 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
   const uniqueMentions = useMemo(() => {
     const mentions = new Set<string>()
     tweets.forEach((tweet) => {
-      if (Array.isArray(tweet.mentions)) {
-        tweet.mentions.forEach((mention) => {
-          if (mention) mentions.add(mention)
-        })
-      }
+      const tweetMentions = (Array.isArray(tweet.mentions) && tweet.mentions.length > 0)
+        ? tweet.mentions
+        : extractMentions(tweet.text)
+      tweetMentions.forEach((mention) => {
+        if (mention) mentions.add(mention)
+      })
     })
     return Array.from(mentions)
   }, [tweets])
+
+  // Define Binance-related mentions
+  const binanceMentions = ["@binance", "@cz_binance", "@heyibinance"]
+
+  // Create a combined list of all mentions for the combobox
+  const allMentionOptions = useMemo(() => {
+    const allOptions = new Set([...binanceMentions, ...uniqueMentions])
+    return Array.from(allOptions).map(mention => ({
+      value: mention,
+      label: mention
+    }))
+  }, [uniqueMentions])
 
   // Generate page numbers for pagination
   const getPageNumbers = () => {
@@ -120,7 +162,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
       </div>
 
       <div className="flex flex-col sm:flex-row items-start gap-4 w-full">
-        <div className="w-32">
+        <div className="w-38">
           <Label htmlFor="min-impressions">Minimum Impressions</Label>
           <Input
             id="min-impressions"
@@ -131,29 +173,92 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
           />
         </div>
 
-        <div className="w-96">
-          <Label htmlFor="mention-filter">Filter by Mention</Label>
-          <div className="w-full">
-            <Select value={mentionFilter} onValueChange={setMentionFilter}>
-              <SelectTrigger 
-                id="mention-filter" 
-                className="mt-1 !w-full !min-w-[12rem]"
-                style={{ width: '12rem', minWidth: '12rem' }}
+        <div className="w-72">
+          <Label htmlFor="mention-filter">Filter by Mentions</Label>
+          <div className="mt-1 w-full relative z-10">
+            <Popover open={open} onOpenChange={setOpen} modal>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={open}
+                  className="w-full justify-between h-9"
+                  id="mention-filter"
+                >
+                  {selectedMentions.length > 0
+                    ? `${selectedMentions.length} selected`
+                    : "Select mentions..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                sideOffset={5}
+                className="p-0"
+                style={{ width: "var(--radix-popover-trigger-width)" }}
               >
-                <SelectValue placeholder="All mentions" className="w-full" />
-              </SelectTrigger>
-              <SelectContent 
-                className="!w-[12rem] !min-w-[12rem]"
-                style={{ width: '12rem', minWidth: '12rem' }}
-              >
-                <SelectItem value="all">All mentions</SelectItem>
-                {uniqueMentions.map((mention) => (
-                  <SelectItem key={mention} value={mention}>
-                    {mention}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <Command>
+                  <CommandInput placeholder="Search mentions..." className="h-9" />
+                  <CommandList>
+                    <CommandEmpty>No mentions found.</CommandEmpty>
+                    <CommandGroup>
+                      {allMentionOptions.map((option) => (
+                        <CommandItem
+                          key={option.value}
+                          value={option.value}
+                          onSelect={(currentValue) => {
+                            setSelectedMentions((prev) => {
+                              if (prev.includes(currentValue)) {
+                                return prev.filter(item => item !== currentValue);
+                              } else {
+                                return [...prev, currentValue];
+                              }
+                            });
+                          }}
+                        >
+                          {option.label}
+                          <Check
+                            className={cn(
+                              "ml-auto h-4 w-4",
+                              selectedMentions.includes(option.value) ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                  {selectedMentions.length > 0 && (
+                    <div className="border-t px-2 py-2 flex flex-col gap-1 max-h-40 overflow-y-auto">
+                      {selectedMentions.map(mention => (
+                        <Badge key={mention} variant="secondary" className="px-2 py-1 w-fit">
+                          {mention}
+                          <X 
+                            className="ml-1 h-3 w-3 cursor-pointer" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedMentions(prev => prev.filter(item => item !== mention));
+                            }}
+                          />
+                        </Badge>
+                      ))}
+                      {selectedMentions.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="self-start mt-1 h-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMentions([]);
+                          }}
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
@@ -248,7 +353,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
                       href={`https://twitter.com/${tweet.authorUsername}/status/${tweet.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary hover:underline"
+                      className="text-[#1DA1F2] hover:text-[#1a8cd8] hover:underline underline-offset-2 transition-colors duration-200 font-medium"
                     >
                       View on X
                     </a>
