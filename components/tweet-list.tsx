@@ -28,6 +28,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from "@/components/ui/command"
 import {
   Popover,
@@ -108,7 +109,8 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
     const allOptions = new Set([...binanceMentions, ...uniqueMentions])
     return Array.from(allOptions).map(mention => ({
       value: mention,
-      label: mention
+      label: mention,
+      isBinanceRelated: binanceMentions.includes(mention)
     }))
   }, [uniqueMentions])
 
@@ -203,27 +205,30 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
                     <CommandEmpty>No mentions found.</CommandEmpty>
                     <CommandGroup>
                       {allMentionOptions.map((option) => (
-                        <CommandItem
-                          key={option.value}
-                          value={option.value}
-                          onSelect={(currentValue) => {
-                            setSelectedMentions((prev) => {
-                              if (prev.includes(currentValue)) {
-                                return prev.filter(item => item !== currentValue);
-                              } else {
-                                return [...prev, currentValue];
-                              }
-                            });
-                          }}
-                        >
-                          {option.label}
-                          <Check
-                            className={cn(
-                              "ml-auto h-4 w-4",
-                              selectedMentions.includes(option.value) ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                        </CommandItem>
+                        <>
+                          <CommandItem
+                            key={option.value}
+                            value={option.value}
+                            onSelect={(currentValue) => {
+                              setSelectedMentions((prev) => {
+                                if (prev.includes(currentValue)) {
+                                  return prev.filter(item => item !== currentValue);
+                                } else {
+                                  return [...prev, currentValue];
+                                }
+                              });
+                            }}
+                          >
+                            {option.label}
+                            <Check
+                              className={cn(
+                                "ml-auto h-4 w-4",
+                                selectedMentions.includes(option.value) ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                          </CommandItem>
+                          {option.value === "@heyibinance" && <CommandSeparator />}
+                        </>
                       ))}
                     </CommandGroup>
                   </CommandList>
