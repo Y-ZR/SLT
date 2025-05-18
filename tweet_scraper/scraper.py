@@ -213,6 +213,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Twitter Scraper CLI")
     parser.add_argument("--group", type=str, help="Group name to scrape tweets for")
     parser.add_argument("--list", action="store_true", help="List all available groups")
+    parser.add_argument("--all", action="store_true", help="Scrape tweets for all available groups")
     parser.add_argument("--start-date", type=str, help="Start date (YYYY-MM-DD)")
     parser.add_argument("--end-date", type=str, help="End date (YYYY-MM-DD)")
     
@@ -220,6 +221,25 @@ if __name__ == "__main__":
     
     if args.list:
         list_groups()
+    elif args.all:
+        groups = get_groups_from_upstash()
+        if not groups:
+            print("Error: No groups found. Use --list to see available groups.")
+            exit(1)
+            
+        print(f"Scraping tweets for all {len(groups)} groups:")
+        for group_name, keywords in groups.items():
+            print(f"\n{'='*50}")
+            print(f"Processing group: {group_name}")
+            print(f"Using keywords: {keywords}")
+            print(f"{'='*50}\n")
+            get_tweets(
+                query=keywords,
+                group=group_name,
+                start_date=args.start_date,
+                end_date=args.end_date
+            )
+        print("\nCompleted scraping all groups!")
     elif args.group:
         groups = get_groups_from_upstash()
         if args.group not in groups:

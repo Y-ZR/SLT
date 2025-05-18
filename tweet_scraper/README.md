@@ -28,6 +28,7 @@ Example:
 ```bash
 python scraper.py --group KYB
 python scraper.py --group Card
+python scraper.py --group KYC
 ```
 
 ### 3. Scrape Tweets with Date Range
@@ -40,10 +41,22 @@ Example:
 python scraper.py --group KYB --start-date 2024-01-01 --end-date 2024-01-31
 ```
 
+### 4. Scrape Tweets for All Groups
+Fetches tweets for all available groups using their predefined keywords
+```bash
+python scraper.py --all
+```
+
+You can also specify a date range when scraping all groups:
+```bash
+python scraper.py --all --start-date 2024-01-01 --end-date 2024-01-31
+```
+
 ## Arguments
 
 - `--group`: Name of the group to scrape tweets for (must exist in Redis)
 - `--list`: List all available groups and their keywords
+- `--all`: Scrape tweets for all available groups
 - `--start-date`: Start date for tweet search (format: YYYY-MM-DD)
 - `--end-date`: End date for tweet search (format: YYYY-MM-DD)
 
