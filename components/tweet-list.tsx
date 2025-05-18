@@ -18,7 +18,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { Check, ChevronsUpDown, X } from "lucide-react"
+import { Check, ChevronsUpDown, ChevronDown, ChevronUp, X, Filter } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -35,6 +35,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import React from "react"
 
 interface TweetListProps {
   tweets: Tweet[]
@@ -50,6 +56,8 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
   const [open, setOpen] = useState(false)
   const [sortField, setSortField] = useState<"date" | "impressions">("date")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
+  const [excludeText, setExcludeText] = useState("")
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
   // Utility to extract @mentions from tweet text
   const extractMentions = (text: string | undefined) => {
@@ -63,6 +71,14 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
       // Filter by impressions
       if (tweet.impressions < minImpressions) {
         return false
+      }
+
+      // Filter out tweets containing the exclude text
+      if (excludeText.trim() !== "") {
+        const tweetText = tweet.text?.toLowerCase() || ""
+        if (tweetText.includes(excludeText.toLowerCase())) {
+          return false
+        }
       }
 
       // Determine mentions for this tweet (from payload or extracted)
@@ -93,7 +109,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
     })
 
     return filtered
-  }, [tweets, minImpressions, selectedMentions, sortField, sortOrder])
+  }, [tweets, minImpressions, selectedMentions, sortField, sortOrder, excludeText])
 
   // Pagination calculations
   const totalTweets = filteredTweets.length
@@ -169,6 +185,9 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
     return pages
   }
 
+  // Calculate if any advanced filters are active
+  const hasActiveAdvancedFilters = excludeText.trim() !== ""
+
   return (
     <div className="space-y-6">
       <div className="bg-muted/50 p-4 rounded-lg">
@@ -224,9 +243,8 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
                     <CommandEmpty>No mentions found.</CommandEmpty>
                     <CommandGroup>
                       {allMentionOptions.map((option) => (
-                        <>
+                        <React.Fragment key={option.value}>
                           <CommandItem
-                            key={option.value}
                             value={option.value}
                             onSelect={(currentValue) => {
                               setSelectedMentions((prev) => {
@@ -247,7 +265,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
                             />
                           </CommandItem>
                           {option.value === "@heyibinance" && <CommandSeparator />}
-                        </>
+                        </React.Fragment>
                       ))}
                     </CommandGroup>
                   </CommandList>
@@ -336,6 +354,88 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
             </Select>
           </div>
         </div>
+      </div>
+
+      <div className="w-full mt-2">
+        <Collapsible>
+          <div className="border rounded-lg">
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full flex items-center justify-between gap-2 h-9 group transition-colors px-4 rounded-none hover:bg-transparent",
+                  "border-0 hover:border-0 shadow-none",
+                  hasActiveAdvancedFilters && "text-primary"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  <span className="font-medium">Advanced Filters</span>
+                  {hasActiveAdvancedFilters && (
+                    <Badge variant="default" className="ml-2">
+                      Active
+                    </Badge>
+                  )}
+                </div>
+                <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+              </Button>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent>
+              <div className="px-6 py-4 border-t space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">Text Exclusion</h3>
+                    {excludeText && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setExcludeText("")}
+                        className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                      >
+                        Clear
+                        <X className="ml-1 h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="exclude-text"
+                        type="text"
+                        value={excludeText}
+                        onChange={(e) => setExcludeText(e.target.value)}
+                        placeholder="Enter text to exclude..."
+                        className="w-full"
+                      />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Tweets containing this text will be hidden from the results (case insensitive)
+                    </p>
+                  </div>
+
+                  {excludeText && (
+                    <div className="pt-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Badge variant="outline" className="bg-background">
+                          Currently excluding: &quot;{excludeText}&quot;
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    Advanced filters allow for more precise control over the displayed tweets.
+                    Changes are applied automatically as you type.
+                  </p>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
       </div>
 
       <div className="text-sm text-muted-foreground">
