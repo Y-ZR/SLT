@@ -48,6 +48,8 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [tweetsPerPage, setTweetsPerPage] = useState("10")
   const [open, setOpen] = useState(false)
+  const [sortField, setSortField] = useState<"date" | "impressions">("date")
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
 
   // Utility to extract @mentions from tweet text
   const extractMentions = (text: string | undefined) => {
@@ -57,7 +59,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
   }
 
   const filteredTweets = useMemo(() => {
-    return tweets.filter((tweet) => {
+    let filtered = tweets.filter((tweet) => {
       // Filter by impressions
       if (tweet.impressions < minImpressions) {
         return false
@@ -74,7 +76,24 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
 
       return true
     })
-  }, [tweets, minImpressions, selectedMentions])
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      if (sortField === "date") {
+        const dateA = new Date(a.createdAt).getTime()
+        const dateB = new Date(b.createdAt).getTime()
+        return sortOrder === "asc" 
+          ? (isNaN(dateA) || isNaN(dateB) ? 0 : dateA - dateB)
+          : (isNaN(dateB) || isNaN(dateA) ? 0 : dateB - dateA)
+      } else {
+        return sortOrder === "asc"
+          ? a.impressions - b.impressions
+          : b.impressions - a.impressions
+      }
+    })
+
+    return filtered
+  }, [tweets, minImpressions, selectedMentions, sortField, sortOrder])
 
   // Pagination calculations
   const totalTweets = filteredTweets.length
@@ -269,25 +288,53 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
 
         <div className="flex-1"></div>
 
-        <div className="w-32 flex flex-col items-end">
-          <Label htmlFor="tweets-per-page" className="text-right">Tweets per Page</Label>
-          <Select
-            value={tweetsPerPage}
-            onValueChange={(value) => {
-              setTweetsPerPage(value);
-              setCurrentPage(1); // Reset to first page when changing items per page
-            }}
-          >
-            <SelectTrigger id="tweets-per-page" className="mt-1 w-full">
-              <SelectValue placeholder="Select amount" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="5">5 tweets</SelectItem>
-              <SelectItem value="10">10 tweets</SelectItem>
-              <SelectItem value="20">20 tweets</SelectItem>
-              <SelectItem value="50">50 tweets</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-start gap-4">
+          <div className="w-40">
+            <Label htmlFor="sort-field">Sort By</Label>
+            <Select value={sortField} onValueChange={(value: "date" | "impressions") => setSortField(value)}>
+              <SelectTrigger id="sort-field" className="mt-1 w-full">
+                <SelectValue placeholder="Select field" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Last Posted</SelectItem>
+                <SelectItem value="impressions">Impressions</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="w-40">
+            <Label htmlFor="sort-order">Order</Label>
+            <Select value={sortOrder} onValueChange={(value: "asc" | "desc") => setSortOrder(value)}>
+              <SelectTrigger id="sort-order" className="mt-1 w-full">
+                <SelectValue placeholder="Select order" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="asc">Ascending</SelectItem>
+                <SelectItem value="desc">Descending</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="w-32">
+            <Label htmlFor="tweets-per-page" className="text-right">Tweets per Page</Label>
+            <Select
+              value={tweetsPerPage}
+              onValueChange={(value) => {
+                setTweetsPerPage(value);
+                setCurrentPage(1); // Reset to first page when changing items per page
+              }}
+            >
+              <SelectTrigger id="tweets-per-page" className="mt-1 w-full">
+                <SelectValue placeholder="Select amount" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5 tweets</SelectItem>
+                <SelectItem value="10">10 tweets</SelectItem>
+                <SelectItem value="20">20 tweets</SelectItem>
+                <SelectItem value="50">50 tweets</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
