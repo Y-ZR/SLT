@@ -453,68 +453,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
         <>
           <div className="space-y-4">
             {currentTweets.map((tweet) => (
-              <Card key={tweet.id}>
-                <CardHeader className="pb-1">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage
-                        src={tweet.authorProfileImage || "/placeholder.svg"}
-                        alt={tweet.author}
-                      />
-                      <AvatarFallback>
-                        {tweet.author ? tweet.author.substring(0, 2) : "??"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <CardTitle className="text-base">
-                        {tweet.author || "Unknown Author"}
-                      </CardTitle>
-                      <CardDescription>
-                        @{tweet.authorUsername || "unknown"}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pb-1">
-                  <p>{tweet.text || "No content"}</p>
-                  {Array.isArray(tweet.mentions) &&
-                    tweet.mentions.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {tweet.mentions.map((mention, index) => (
-                          <Badge
-                            key={`${mention}-${index}`}
-                            variant="secondary"
-                            className="text-xs"
-                          >
-                            {mention}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                </CardContent>
-                <CardFooter className="pt-1 text-sm text-muted-foreground flex justify-between items-center">
-                  <div className="flex items-center gap-4">
-                    <span>
-                      {tweet.createdAt
-                        ? formatDistanceToNow(new Date(tweet.createdAt), {
-                            addSuffix: true,
-                          })
-                        : "Unknown date"}
-                    </span>
-                    <a
-                      href={`https://twitter.com/${tweet.authorUsername}/status/${tweet.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#1DA1F2] hover:text-[#1a8cd8] hover:underline underline-offset-2 transition-colors duration-200 font-medium"
-                    >
-                      View on X
-                    </a>
-                  </div>
-                  <span>
-                    {tweet.impressions?.toLocaleString() || 0} impressions
-                  </span>
-                </CardFooter>
-              </Card>
+              <TweetCard key={tweet.id} tweet={tweet} />
             ))}
           </div>
 
@@ -572,3 +511,80 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
     </div>
   );
 }
+
+// --------------------
+// TweetCard Subcomponent
+
+interface TweetCardProps {
+  tweet: Tweet
+}
+
+function TweetCard({ tweet }: TweetCardProps) {
+  const [expanded, setExpanded] = useState(false)
+
+  const maxChars = 280
+  const needsTruncate = (tweet.text?.length || 0) > maxChars
+  const displayText = expanded || !needsTruncate ? tweet.text : `${tweet.text?.slice(0, maxChars)}...`
+
+  return (
+    <Card>
+      <CardHeader className="pb-1">
+        <div className="flex items-center gap-3">
+          <Avatar>
+            <AvatarImage src={tweet.authorProfileImage || "/placeholder.svg"} alt={tweet.author} />
+            <AvatarFallback>{tweet.author ? tweet.author.substring(0, 2) : "??"}</AvatarFallback>
+          </Avatar>
+          <div>
+            <CardTitle className="text-base">{tweet.author || "Unknown Author"}</CardTitle>
+            <CardDescription>@{tweet.authorUsername || "unknown"}</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="pb-1">
+        <p className="whitespace-pre-wrap">{displayText || "No content"}</p>
+
+        {needsTruncate && (
+          <Button
+            variant="link"
+            size="sm"
+            className="px-0 h-auto mt-1"
+            onClick={() => setExpanded((prev) => !prev)}
+          >
+            {expanded ? "Read less" : "Read more"}
+          </Button>
+        )}
+
+        {Array.isArray(tweet.mentions) && tweet.mentions.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {tweet.mentions.map((mention, index) => (
+              <Badge key={`${mention}-${index}`} variant="secondary" className="text-xs">
+                {mention}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </CardContent>
+
+      <CardFooter className="pt-1 text-sm text-muted-foreground flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <span>
+            {tweet.createdAt
+              ? formatDistanceToNow(new Date(tweet.createdAt), { addSuffix: true })
+              : "Unknown date"}
+          </span>
+          <a
+            href={`https://twitter.com/${tweet.authorUsername}/status/${tweet.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#1DA1F2] hover:text-[#1a8cd8] hover:underline underline-offset-2 transition-colors duration-200 font-medium"
+          >
+            View on X
+          </a>
+        </div>
+        <span>{tweet.impressions?.toLocaleString() || 0} impressions</span>
+      </CardFooter>
+    </Card>
+  )
+}
+// --------------------
