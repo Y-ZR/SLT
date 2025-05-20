@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SLT - Social Listening Tool
 
-## Getting Started
+This is a social listening tool that scrapes tweets based on predefined keywords and displays them in a web interface.
 
-First, run the development server:
+## Initial Setup
 
+### Frontend Setup
+
+1. Install Node.js dependencies:
+```bash
+npm install
+```
+
+2. Create a `.env` file in the root directory (request this file from ZR, the project owner and dev lead).
+
+3. Run the development server:
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Tweet Scraper Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Navigate to the tweet_scraper directory:
+```bash
+cd tweet_scraper
+```
 
-## Learn More
+2. Create and activate a Python virtual environment:
+```bash
+# Create virtual environment
+python -m venv venv
 
-To learn more about Next.js, take a look at the following resources:
+# Activate on macOS/Linux
+source venv/bin/activate
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Activate on Windows
+# venv\Scripts\activate
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. Install Python dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-## Deploy on Vercel
+4. Ensure you have the required environment variables:
+   - `TWITTER_TOKEN`: Your Twitter API token
+   - `TWITTER_API_BASE`: Base URL for Twitter API
+   - `UPSTASH_REDIS_REST_URL`: Your Upstash Redis REST URL
+   - `UPSTASH_REDIS_REST_TOKEN`: Your Upstash Redis REST token
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   Note: Request the .env file from ZR if you don't have these credentials.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Daily Usage Workflow for Social Listening
+
+1. Open two command-line interface windows.
+
+2. In the first window, start the frontend:
+```bash
+# In the project root directory
+npm run dev
+```
+
+3. In the second window, run the tweet scraper:
+```bash
+# Navigate to the tweet_scraper directory
+cd tweet_scraper
+
+# Activate the virtual environment
+source venv/bin/activate  # on macOS/Linux
+# venv\Scripts\activate   # on Windows
+
+# Run the scraper for all groups
+python scraper.py --all
+```
+
+4. Navigate to the locally running frontend at [http://localhost:3000](http://localhost:3000) to view and interact with the scraped tweets.
+
+## Tweet Scraper Commands
+
+### List All Groups
+```bash
+python scraper.py --list
+```
+
+### Scrape Tweets for a Specific Group
+```bash
+python scraper.py --group GROUP_NAME
+```
+
+### Scrape Tweets with Date Range
+```bash
+python scraper.py --group GROUP_NAME --start-date YYYY-MM-DD --end-date YYYY-MM-DD
+```
+
+### Scrape Tweets for All Groups
+```bash
+python scraper.py --all
+```
+
+For more details on the tweet scraper, refer to the [Tweet Scraper README](./tweet_scraper/README.md).
+

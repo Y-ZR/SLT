@@ -9,7 +9,6 @@ and their keywords stored in Redis Upstash.
 - `TWITTER_API_BASE`: Base URL for Twitter API
 - `UPSTASH_REDIS_REST_URL`: Your Upstash Redis REST URL
 - `UPSTASH_REDIS_REST_TOKEN`: Your Upstash Redis REST token
-- `SCRAPER_MAX_RESULTS`: Maximum number of results to return per query
 
 ## Available Commands
 
