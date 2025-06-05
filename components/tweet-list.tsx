@@ -51,6 +51,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
   const [minImpressions, setMinImpressions] = useState<number>(0)
   const [mentionFilter, setMentionFilter] = useState<string>("all")
   const [selectedMentions, setSelectedMentions] = useState<string[]>([])
+  const [selectedKeywords, setSelectedKeywords] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [tweetsPerPage, setTweetsPerPage] = useState("10")
   const [open, setOpen] = useState(false)
@@ -77,6 +78,17 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
       if (excludeText.trim() !== "") {
         const tweetText = tweet.text?.toLowerCase() || ""
         if (tweetText.includes(excludeText.toLowerCase())) {
+          return false
+        }
+      }
+
+      // Filter by selected keywords
+      if (selectedKeywords.length > 0) {
+        const tweetText = tweet.text?.toLowerCase() || ""
+        const hasSelectedKeyword = selectedKeywords.some(keyword => 
+          tweetText.includes(keyword.toLowerCase())
+        )
+        if (!hasSelectedKeyword) {
           return false
         }
       }
@@ -109,7 +121,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
     })
 
     return filtered
-  }, [tweets, minImpressions, selectedMentions, sortField, sortOrder, excludeText])
+  }, [tweets, minImpressions, selectedMentions, selectedKeywords, sortField, sortOrder, excludeText])
 
   // Pagination calculations
   const totalTweets = filteredTweets.length
@@ -188,17 +200,79 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
   // Calculate if any advanced filters are active
   const hasActiveAdvancedFilters = excludeText.trim() !== ""
 
+  // Handle keyword selection
+  const handleKeywordClick = (keyword: string) => {
+    setSelectedKeywords(prev => {
+      if (prev.includes(keyword)) {
+        return prev.filter(k => k !== keyword)
+      } else {
+        return [...prev, keyword]
+      }
+    })
+    setCurrentPage(1) // Reset to first page when filtering
+  }
+
   return (
     <div className="space-y-6">
       <div className="bg-muted/50 p-4 rounded-lg">
-        <div className="text-sm font-medium mb-2">Keywords</div>
+        <div className="text-sm font-medium mb-2">Keywords Filter</div>
         <div className="flex flex-wrap gap-2">
-          {groupKeywords.split(",").map((keyword, i) => (
-            <Badge key={i} variant="outline" className="bg-background">
-              {keyword.trim()}
-            </Badge>
-          ))}
+          {groupKeywords.split(",").map((keyword, i) => {
+            const trimmedKeyword = keyword.trim();
+            const isSelected = selectedKeywords.includes(trimmedKeyword);
+            return (
+              <Badge
+                key={i}
+                variant={isSelected ? "default" : "outline"}
+                className={cn(
+                  "cursor-pointer transition-colors hover:bg-primary hover:text-primary-foreground",
+                  isSelected
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background hover:bg-primary/10"
+                )}
+                onClick={() => handleKeywordClick(trimmedKeyword)}
+              >
+                {trimmedKeyword}
+              </Badge>
+            );
+          })}
         </div>
+        {selectedKeywords.length > 0 && (
+          <div className="mt-2 pt-4 border-t">
+            <div className="mt-2 pt-4 flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Active filters:</span>
+              <div className="flex flex-wrap gap-1">
+                {selectedKeywords.map((keyword, i) => (
+                  <Badge key={i} variant="secondary" className="text-xs">
+                    {keyword}
+                    <span
+                      role="button"
+                      aria-label={`Remove ${keyword}`}
+                      className="ml-1 inline-flex items-center justify-center cursor-pointer hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleKeywordClick(keyword);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </span>
+                  </Badge>
+                ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    setSelectedKeywords([]);
+                    setCurrentPage(1);
+                  }}
+                >
+                  Clear all
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row items-start gap-4 w-full">
@@ -238,7 +312,10 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
                 style={{ width: "var(--radix-popover-trigger-width)" }}
               >
                 <Command>
-                  <CommandInput placeholder="Search mentions..." className="h-9" />
+                  <CommandInput
+                    placeholder="Search mentions..."
+                    className="h-9"
+                  />
                   <CommandList>
                     <CommandEmpty>No mentions found.</CommandEmpty>
                     <CommandGroup>
@@ -249,7 +326,9 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
                             onSelect={(currentValue) => {
                               setSelectedMentions((prev) => {
                                 if (prev.includes(currentValue)) {
-                                  return prev.filter(item => item !== currentValue);
+                                  return prev.filter(
+                                    (item) => item !== currentValue
+                                  );
                                 } else {
                                   return [...prev, currentValue];
                                 }
@@ -260,25 +339,35 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
                             <Check
                               className={cn(
                                 "ml-auto h-4 w-4",
-                                selectedMentions.includes(option.value) ? "opacity-100" : "opacity-0"
+                                selectedMentions.includes(option.value)
+                                  ? "opacity-100"
+                                  : "opacity-0"
                               )}
                             />
                           </CommandItem>
-                          {option.value === "@heyibinance" && <CommandSeparator />}
+                          {option.value === "@heyibinance" && (
+                            <CommandSeparator />
+                          )}
                         </React.Fragment>
                       ))}
                     </CommandGroup>
                   </CommandList>
                   {selectedMentions.length > 0 && (
                     <div className="border-t px-2 py-2 flex flex-col gap-1 max-h-40 overflow-y-auto">
-                      {selectedMentions.map(mention => (
-                        <Badge key={mention} variant="secondary" className="px-2 py-1 w-fit">
+                      {selectedMentions.map((mention) => (
+                        <Badge
+                          key={mention}
+                          variant="secondary"
+                          className="px-2 py-1 w-fit"
+                        >
                           {mention}
-                          <X 
-                            className="ml-1 h-3 w-3 cursor-pointer" 
+                          <X
+                            className="ml-1 h-3 w-3 cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedMentions(prev => prev.filter(item => item !== mention));
+                              setSelectedMentions((prev) =>
+                                prev.filter((item) => item !== mention)
+                              );
                             }}
                           />
                         </Badge>
@@ -309,7 +398,12 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
         <div className="flex items-start gap-4">
           <div className="w-40">
             <Label htmlFor="sort-field">Sort By</Label>
-            <Select value={sortField} onValueChange={(value: "date" | "impressions") => setSortField(value)}>
+            <Select
+              value={sortField}
+              onValueChange={(value: "date" | "impressions") =>
+                setSortField(value)
+              }
+            >
               <SelectTrigger id="sort-field" className="mt-1 w-full">
                 <SelectValue placeholder="Select field" />
               </SelectTrigger>
@@ -322,7 +416,10 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
 
           <div className="w-40">
             <Label htmlFor="sort-order">Order</Label>
-            <Select value={sortOrder} onValueChange={(value: "asc" | "desc") => setSortOrder(value)}>
+            <Select
+              value={sortOrder}
+              onValueChange={(value: "asc" | "desc") => setSortOrder(value)}
+            >
               <SelectTrigger id="sort-order" className="mt-1 w-full">
                 <SelectValue placeholder="Select order" />
               </SelectTrigger>
@@ -334,7 +431,9 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
           </div>
 
           <div className="w-32">
-            <Label htmlFor="tweets-per-page" className="text-right">Tweets per Page</Label>
+            <Label htmlFor="tweets-per-page" className="text-right">
+              Tweets per Page
+            </Label>
             <Select
               value={tweetsPerPage}
               onValueChange={(value) => {
@@ -380,7 +479,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
                 <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </Button>
             </CollapsibleTrigger>
-            
+
             <CollapsibleContent>
               <div className="px-6 py-4 border-t space-y-6">
                 <div className="space-y-4">
@@ -398,7 +497,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
                       </Button>
                     )}
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Input
@@ -411,7 +510,8 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
                       />
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Tweets containing this text will be hidden from the results (case insensitive)
+                      Tweets containing this text will be hidden from the
+                      results (case insensitive)
                     </p>
                   </div>
 
@@ -428,8 +528,9 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
 
                 <div className="pt-2 border-t">
                   <p className="text-xs text-muted-foreground">
-                    Advanced filters allow for more precise control over the displayed tweets.
-                    Changes are applied automatically as you type.
+                    Advanced filters allow for more precise control over the
+                    displayed tweets. Changes are applied automatically as you
+                    type.
                   </p>
                 </div>
               </div>
