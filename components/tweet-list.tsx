@@ -239,7 +239,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
         </div>
         {selectedKeywords.length > 0 && (
           <div className="mt-2 pt-4 border-t">
-            <div className="mt-2 pt-4 flex items-center gap-2 text-sm">
+            <div className="mt-2 flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">Active filters:</span>
               <div className="flex flex-wrap gap-1">
                 {selectedKeywords.map((keyword, i) => (
