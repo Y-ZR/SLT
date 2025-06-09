@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { formatDistanceToNow } from "date-fns"
+import { formatDistanceToNow, subDays, subWeeks, subMonths } from "date-fns"
 import {
   Pagination,
   PaginationContent,
@@ -59,6 +59,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
   const [excludeText, setExcludeText] = useState("")
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+  const [dateRange, setDateRange] = useState<string>("all")
 
   // Utility to extract @mentions from tweet text
   const extractMentions = (text: string | undefined) => {
@@ -78,6 +79,35 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
       if (excludeText.trim() !== "") {
         const tweetText = tweet.text?.toLowerCase() || ""
         if (tweetText.includes(excludeText.toLowerCase())) {
+          return false
+        }
+      }
+
+      // Filter by date range
+      if (dateRange !== "all") {
+        const tweetDate = new Date(tweet.createdAt)
+        const now = new Date()
+        let threshold: Date | null = null
+        switch (dateRange) {
+          case "1d":
+            threshold = subDays(now, 1)
+            break
+          case "3d":
+            threshold = subDays(now, 3)
+            break
+          case "7d":
+            threshold = subDays(now, 7)
+            break
+          case "2w":
+            threshold = subWeeks(now, 2)
+            break
+          case "1m":
+            threshold = subMonths(now, 1)
+            break
+          default:
+            threshold = null
+        }
+        if (threshold && tweetDate < threshold) {
           return false
         }
       }
@@ -121,7 +151,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
     })
 
     return filtered
-  }, [tweets, minImpressions, selectedMentions, selectedKeywords, sortField, sortOrder, excludeText])
+  }, [tweets, minImpressions, selectedMentions, selectedKeywords, sortField, sortOrder, excludeText, dateRange])
 
   // Pagination calculations
   const totalTweets = filteredTweets.length
@@ -198,7 +228,7 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
   }
 
   // Calculate if any advanced filters are active
-  const hasActiveAdvancedFilters = excludeText.trim() !== ""
+  const hasActiveAdvancedFilters = excludeText.trim() !== "" || dateRange !== "all"
 
   // Handle keyword selection
   const handleKeywordClick = (keyword: string) => {
@@ -524,6 +554,44 @@ export function TweetList({ tweets, groupKeywords }: TweetListProps) {
                       </div>
                     </div>
                   )}
+                </div>
+
+                {/* Date Range Filter */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">Date Range</h3>
+                    {dateRange !== "all" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDateRange("all")}
+                        className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                      >
+                        Clear
+                        <X className="ml-1 h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: "1 Day", value: "1d" },
+                      { label: "3 Days", value: "3d" },
+                      { label: "7 Days", value: "7d" },
+                      { label: "2 Weeks", value: "2w" },
+                      { label: "1 Month", value: "1m" },
+                    ].map((option) => (
+                      <Button
+                        key={option.value}
+                        variant={dateRange === option.value ? "default" : "outline"}
+                        size="sm"
+                        className="h-8 px-3 text-xs"
+                        onClick={() => setDateRange(option.value)}
+                      >
+                        {option.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="pt-2 border-t">
