@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { getGroups, getTweetsForGroup, addGroup, deleteGroup, type Group, type Tweet } from "@/lib/redis"
+import { getGroups, getTweetsForGroup, addGroup, deleteGroup, type Group, type Tweet, updateGroup as redisUpdateGroup } from "@/lib/redis"
 
 export async function fetchGroups(): Promise<Group[]> {
   try {
@@ -54,6 +54,26 @@ export async function removeGroup(formData: FormData) {
     return { success: true }
   } catch (error) {
     console.error("Error removing group:", error)
+    return { success: false, error: (error as Error).message }
+  }
+}
+
+export async function updateGroup(formData: FormData) {
+  try {
+    const oldName = formData.get("oldName") as string
+    const newName = formData.get("name") as string
+    const keywords = formData.get("keywords") as string
+
+    if (!oldName || !newName || !keywords) {
+      throw new Error("Old name, new name, and keywords are required")
+    }
+
+    await redisUpdateGroup(oldName, newName, keywords)
+    revalidatePath("/")
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error updating group:", error)
     return { success: false, error: (error as Error).message }
   }
 }

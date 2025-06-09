@@ -144,3 +144,34 @@ export async function addTweet(tweet: Tweet): Promise<void> {
     console.error(`Error adding tweet ${id}:`, error)
   }
 }
+
+export async function updateGroup(oldName: string, newName: string, keywords: string): Promise<void> {
+  // If name hasn't changed, just update keywords
+  if (oldName === newName) {
+    await redis.hset("groups", { [oldName]: keywords })
+    return
+  }
+
+  // Start a pipeline to perform multiple operations atomically
+  const pipeline = redis.pipeline()
+
+  // 1. Add the new group entry with updated keywords
+  pipeline.hset("groups", { [newName]: keywords })
+
+  // 2. Remove the old group entry
+  pipeline.hdel("groups", oldName)
+
+  // 3. Rename the tweets key if it exists
+  const oldTweetsKey = `tweets:${oldName}`
+  const newTweetsKey = `tweets:${newName}`
+  try {
+    const exists = await redis.exists(oldTweetsKey)
+    if (exists) {
+      pipeline.rename(oldTweetsKey, newTweetsKey)
+    }
+  } catch (err) {
+    console.error("Error checking/renaming tweets key while updating group:", err)
+  }
+
+  await pipeline.exec()
+}

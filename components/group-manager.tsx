@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Group } from "@/lib/redis";
-import { createGroup, removeGroup } from "@/app/actions";
+import { createGroup, removeGroup, updateGroup } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 interface GroupManagerProps {
@@ -38,6 +38,8 @@ export function GroupManager({ groups }: GroupManagerProps) {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [groupBeingEdited, setGroupBeingEdited] = useState<Group | null>(null);
 
   const handleAddGroup = async (formData: FormData) => {
     try {
@@ -65,6 +67,21 @@ export function GroupManager({ groups }: GroupManagerProps) {
     } catch (error) {
       toast.error("Error", {
         description: "Failed to delete group. Please try again.",
+      });
+    }
+  };
+
+  const handleEditGroup = async (formData: FormData) => {
+    try {
+      await updateGroup(formData);
+      setEditDialogOpen(false);
+      setGroupBeingEdited(null);
+      toast.success("Group updated", {
+        description: "The group has been updated successfully.",
+      });
+    } catch (error) {
+      toast.error("Error", {
+        description: "Failed to update group. Please try again.",
       });
     }
   };
@@ -125,14 +142,73 @@ export function GroupManager({ groups }: GroupManagerProps) {
           groups.map((group) => (
             <div
               key={group.name}
-              className="flex justify-between items-center p-3 border rounded-md"
+              className="flex items-center gap-4 p-3 border rounded-md"
             >
-              <div>
+              <div className="flex-1">
                 <div className="font-medium">{group.name}</div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground truncate">
                   {group.keywords}
                 </div>
               </div>
+
+              {/* Edit Button & Dialog */}
+              <Dialog
+                open={editDialogOpen && groupBeingEdited?.name === group.name}
+                onOpenChange={(open) => {
+                  setEditDialogOpen(open);
+                  if (!open) setGroupBeingEdited(null);
+                }}
+              >
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setGroupBeingEdited(group)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <form action={handleEditGroup}>
+                    <input
+                      type="hidden"
+                      name="oldName"
+                      value={groupBeingEdited?.name ?? ""}
+                    />
+                    <DialogHeader>
+                      <DialogTitle>Edit Group</DialogTitle>
+                      <DialogDescription>
+                        Update the group name or keywords.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="name">Group Name</Label>
+                        <Input
+                          id="name"
+                          name="name"
+                          defaultValue={groupBeingEdited?.name}
+                          required
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="keywords">Keywords (comma separated)</Label>
+                        <Textarea
+                          id="keywords"
+                          name="keywords"
+                          defaultValue={groupBeingEdited?.keywords}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit">Save Changes</Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+
+              {/* Delete button & Alert dialog */}
               <AlertDialog
                 open={deleteDialogOpen && groupToDelete === group.name}
                 onOpenChange={(open) => {
