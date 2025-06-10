@@ -144,9 +144,9 @@ export function GroupManager({ groups }: GroupManagerProps) {
               key={group.name}
               className="flex items-center gap-4 p-3 border rounded-md"
             >
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="font-medium">{group.name}</div>
-                <div className="text-sm text-muted-foreground truncate">
+                <div className="text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
                   {group.keywords}
                 </div>
               </div>
